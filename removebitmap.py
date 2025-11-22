@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env fontforge
 # -*- coding: utf-8 -*-
 """
 Usage: python %s path
@@ -8,11 +8,9 @@ eg. python removebitmap.py ~/Downloads/fonts
 
 import sys
 import glob
-import fontforge
 import tempfile
 import os
 import shutil
-import subprocess
 
 # fontforge setting.
 fontforge.setPrefs('CoverageFormatsAllowed', 1)
