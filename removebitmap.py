@@ -1,9 +1,9 @@
 #!/usr/bin/env fontforge
 # -*- coding: utf-8 -*-
 """
-Usage: python %s path
+Usage: fontforge %s path
    argv[1] ... path
-eg. python removebitmap.py ~/Downloads/fonts
+eg. fontforge removebitmap.py ~/Downloads/fonts
 """
 
 import sys
@@ -64,21 +64,19 @@ def main(argvs):
     argc = len(argvs)
 
     if argc != 2:
-        print "Usage: python %s /path/dir" % argvs[0]
-        print "   eg. python %s ~/Downloads/fonts" % argvs[0]
+        print("Usage: fontforge %s /path/dir" % argvs[0])
+        print("   eg. fontforge %s ~/Downloads/fonts" % argvs[0])
         quit()
 
-    # TrueType 系統のファイルを探す。
+    # Search for TrueType files
     fontFiles = fontsSearch(argvs[1], '*.ttc', '*.ttf')
-
-    # 見つかった TrueType 系統のファイルを順次変換する。
     for fontFile in fontFiles:
         # set variables.
         fontFSName = os.path.basename(fontFile)
         tmpPrefix = "breakttc"
         tempDir = tempfile.mkdtemp()
 
-        print "Start breaking TTC."
+        print("Starting to break TTC.")
         # Get packed family names
         familyNames = fontforge.fontsInFile(fontFile)
         i = 0
@@ -86,7 +84,7 @@ def main(argvs):
         # Break a TTC to some TTFs.
         for familyName in familyNames:
             # openName format: "msgothic.ttc(MS UI Gothic)"
-            print "%s" % familyName
+            print("%s" % familyName)
             openName = "%s(%s)" % (fontFile, familyName)
 
             # tmp file name: breakttf0a.ttf and breakttf1a.ttf and so on.
@@ -100,16 +98,16 @@ def main(argvs):
             font.gasp = gasp()
             font.gasp_version = 1
             font.os2_vendor = "maud"
-            font.os2_version = 1 # Windows で幅広問題を回避する。
+            font.os2_version = 1 # Avoid UTF-16 issues on Windows
 
-            # ttf へ一時的に保存する。
+            # Temporarily save to TTF
             font.generate(tempDir + "/" + tmpTTF, flags=flags)
             font.close()
             i += 1
-        print "Finish breaking TTC."
+        print("Finished breaking TTC.")
 
 
-        print "Start generate TTC."
+        print("Starting to generate TTC.")
         # set variables.
         newTTCname = fontFSName
         newFontPath = tempDir + "/" + newTTCname
@@ -117,34 +115,36 @@ def main(argvs):
         files = glob.glob(tempDir + "/" + tmpPrefix + '[0-9]a.ttf')
 
         f = fontforge.open(files[0])
+        
+        # If we're to make a TTC, we should have at least two files. We're popping one,
+        # so `len` should be at least 1.
         files.pop(0)
-
-        # TTC の場合 pop しても一つ以上残るはず。
         if len(files) > 0:
-            # 残りの ttf を最初の ttf に追加する。
+            # Append further TTFs onto the first one.
             for file in files:
-                # Raspberry Pi 3 は複数開くとメモリが足りなくて落ちるので注意。
+                # With multiple applications open on small embedded systems, this will crash due
+                # to insufficient memory.
                 f2 = fontforge.open(file)
                 f.generateTtc(newFontPath, f2, ttcflags=("merge",), layer=1)
                 f2.close()
-        # TTF の場合 pop して一つ減ってるから 0 になるはず。
+        # If there was only one file (`len` is now 0 after popping), just make a TTF.
         elif len(files) == 0:
             f.generate(newFontPath, flags=flags)
 
-        # 新しく生成した分のフォントを閉じる。
+        # Close our new TTC.
         f.close()
-        print "Finish generate TTC."
+        print("Finished generating TTC.")
 
-        # temporary 内の ttc ファイルを保存先へ移動する。
+        # Move the TTC files from the temporary directory to their permanent location.
         if os.path.exists(newFontPath):
             shutil.move(newFontPath, saveFontPath)
 
-        # temporary directory を掃除しておく。
+        # Remove the temporary directory.
         shutil.rmtree(tempDir)
-        print "Cleanup temporary directory."
+        print("Cleaned up temporary directory.")
 
     # Finish
-    print "Finish all in dir."
+    print("Finished all in dir.")
 
 if __name__ == '__main__':
     main(sys.argv)
